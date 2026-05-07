@@ -289,17 +289,18 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [activeLanguage]);
 
   // Currency formatting function
-  const formatCurrency = useCallback((amount: number): string => {
+  const formatCurrency = useCallback((amount: any): string => {
+    const numericAmount = typeof amount === 'number' ? amount : (Number(amount) || 0);
     try {
       return new Intl.NumberFormat(activeSettings.currency_locale, {
         style: 'currency',
         currency: activeSettings.currency_code,
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
-      }).format(amount);
+      }).format(numericAmount);
     } catch {
       // Fallback if locale/currency is not supported
-      return `${activeSettings.currency_symbol}${amount.toFixed(2)}`;
+      return `${activeSettings.currency_symbol}${numericAmount.toFixed(2)}`;
     }
   }, [activeSettings.currency_locale, activeSettings.currency_code, activeSettings.currency_symbol]);
 
