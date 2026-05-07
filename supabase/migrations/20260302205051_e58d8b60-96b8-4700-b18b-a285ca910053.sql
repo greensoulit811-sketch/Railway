@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN hide_stock boolean NOT NULL DEFAULT false;

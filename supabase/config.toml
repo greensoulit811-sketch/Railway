@@ -1,0 +1,16 @@
+project_id = "pppnsrrpijddvhjohgue"
+
+[functions.steadfast-courier]
+verify_jwt = false
+
+[functions.meta-capi]
+verify_jwt = false
+
+[functions.manage-capi-token]
+verify_jwt = false
+
+[functions.manage-users]
+verify_jwt = false
+
+[functions.customer-courier-history]
+verify_jwt = false

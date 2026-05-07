@@ -1,0 +1,1 @@
+ALTER TABLE public.site_settings ADD COLUMN show_stock_to_visitors boolean NOT NULL DEFAULT true;

@@ -1,0 +1,1 @@
+ALTER TABLE public.product_variants ADD COLUMN variant_sale_price numeric NULL;
