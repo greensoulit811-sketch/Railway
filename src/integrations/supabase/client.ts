@@ -1,9 +1,12 @@
 // This file mocks the Supabase client to talk to our custom Node.js server
 // This allows the rest of the app to work without major refactoring.
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-  ? 'http://localhost:5000/api'
-  : '/api';
+// For Vercel deployment: Set VITE_API_URL in Vercel environment variables
+// Example: https://your-backend.up.railway.app/api
+const API_URL = import.meta.env.VITE_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000/api' 
+    : '/api');
 
 // Global helper to ensure numbers are numbers (fixes toFixed errors)
 const autoCast = (obj) => {
@@ -11,7 +14,7 @@ const autoCast = (obj) => {
   if (Array.isArray(obj)) return obj.map(autoCast);
   if (typeof obj === 'object') {
     const newObj = { ...obj };
-    const numericFields = ['price', 'sale_price', 'cost', 'amount', 'total', 'subtotal', 'delivery_charge', 'discount', 'rating', 'stock'];
+    const numericFields = ['price', 'sale_price', 'cost', 'amount', 'total', 'subtotal', 'delivery_charge', 'discount', 'rating', 'stock', 'shipping_cost', 'paid_amount', 'due_amount'];
     for (const key in newObj) {
       if (numericFields.includes(key) && newObj[key] !== null) {
         const num = Number(newObj[key]);
@@ -109,13 +112,10 @@ class SupabaseQueryBuilder {
       const response = await fetch(url, options);
       const rawData = await response.json();
       
-      // APPLY AUTO CASTING TO ENSURE NUMBERS ARE NUMBERS
       let data = autoCast(rawData);
-      
       if (this.singleMode && Array.isArray(data)) {
         data = data.length > 0 ? data[0] : null;
       }
-      
       return { data, error: null };
     } catch (error) {
       console.error(`[API Error] ${this.table}:`, error);
@@ -130,7 +130,6 @@ class SupabaseQueryBuilder {
 
 export const supabase = {
   from: (table) => new SupabaseQueryBuilder(table),
-  
   auth: {
     getSession: async () => {
       const token = localStorage.getItem('auth_token');
@@ -138,7 +137,6 @@ export const supabase = {
       if (token && user) return { data: { session: { access_token: token, user } }, error: null };
       return { data: { session: null }, error: null };
     },
-    
     onAuthStateChange: (callback) => {
       const token = localStorage.getItem('auth_token');
       const user = JSON.parse(localStorage.getItem('auth_user') || 'null');
@@ -146,7 +144,6 @@ export const supabase = {
       else callback('SIGNED_OUT', null);
       return { data: { subscription: { unsubscribe: () => {} } } };
     },
-    
     signInWithPassword: async ({ email, password }) => {
       try {
         const res = await fetch(`${API_URL.replace('/api', '')}/api/auth/login`, {
@@ -165,7 +162,6 @@ export const supabase = {
         return { data: null, error };
       }
     },
-
     signUp: async ({ email, password }) => {
       try {
         const res = await fetch(`${API_URL.replace('/api', '')}/api/auth/register`, {
@@ -180,14 +176,12 @@ export const supabase = {
         return { data: null, error };
       }
     },
-    
     signOut: async () => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       return { error: null };
     }
   },
-
   storage: {
     from: (bucket) => ({
       getPublicUrl: (path) => {
