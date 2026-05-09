@@ -141,6 +141,62 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
+// --- Dedicated Route for Site Settings ---
+app.put('/api/site_settings', async (req, res) => {
+  const data = req.body;
+  console.log('[DEBUG] Saving Site Settings:', JSON.stringify(data));
+  try {
+    // Ensure id is global
+    const item = { ...data, id: 'global' };
+    const keys = Object.keys(item).filter(k => k !== 'id');
+    
+    // Check if exists
+    const existCheck = await query("SELECT id FROM public.site_settings WHERE id = 'global'");
+    
+    let result;
+    if (existCheck.rows.length > 0) {
+      // Update
+      const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(',');
+      const sql = `UPDATE public.site_settings SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;
+      result = await query(sql, [...keys.map(k => item[k]), 'global']);
+      console.log('[DEBUG] Site Settings UPDATED');
+    } else {
+      // Insert
+      const allKeys = Object.keys(item);
+      const sql = `INSERT INTO public.site_settings (${allKeys.join(',')}) VALUES (${allKeys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
+      result = await query(sql, allKeys.map(k => item[k]));
+      console.log('[DEBUG] Site Settings INSERTED');
+    }
+    
+    res.json(castValues(result.rows[0]));
+  } catch (err) {
+    console.error('[ERROR] Site Settings Save Failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/store_settings', async (req, res) => {
+  const data = req.body;
+  try {
+    const item = { ...data, id: 'global' };
+    const keys = Object.keys(item).filter(k => k !== 'id');
+    const existCheck = await query("SELECT id FROM public.store_settings WHERE id = 'global'");
+    let result;
+    if (existCheck.rows.length > 0) {
+      const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(',');
+      const sql = `UPDATE public.store_settings SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;
+      result = await query(sql, [...keys.map(k => item[k]), 'global']);
+    } else {
+      const allKeys = Object.keys(item);
+      const sql = `INSERT INTO public.store_settings (${allKeys.join(',')}) VALUES (${allKeys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
+      result = await query(sql, allKeys.map(k => item[k]));
+    }
+    res.json(castValues(result.rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Generic CRUD ---
 app.get('/api/:table', async (req, res) => {
   const { table } = req.params;
