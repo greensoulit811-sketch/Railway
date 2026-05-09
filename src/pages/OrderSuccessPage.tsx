@@ -14,22 +14,28 @@ export default function OrderSuccessPage() {
   const { data: order } = useOrderByNumber(orderId);
 
   useEffect(() => {
-    if (order) {
-      console.log('[OrderSuccess] Tracking Purchase:', order.order_number);
-      trackPurchase({
-        orderId: order.order_number,
-        value: order.total,
-        currency: settings.currency_code,
-        contents: order.order_items?.map(item => ({
-          id: item.product_id || '',
-          quantity: item.quantity,
-          item_price: item.price
-        })) || [],
-        email: order.customer_email || undefined,
-        phone: order.customer_phone || undefined,
-      });
+    if (order && settings) {
+      console.log('[OrderSuccess] Initiating tracking for order:', order.order_number);
+      
+      // Small delay to ensure everything is ready
+      const timer = setTimeout(() => {
+        trackPurchase({
+          orderId: order.order_number,
+          value: order.total,
+          currency: settings.currency_code || 'BDT',
+          contents: order.order_items?.map(item => ({
+            id: String(item.product_id || ''),
+            quantity: item.quantity,
+            item_price: item.price
+          })) || [],
+          email: order.customer_email || undefined,
+          phone: order.customer_phone || undefined,
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
-  }, [order, settings.currency_code]);
+  }, [order, settings]);
 
   return (
     <Layout>
