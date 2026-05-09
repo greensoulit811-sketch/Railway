@@ -254,6 +254,43 @@ app.post('/api/:table', async (req, res) => {
     }
     
     console.log(`[POST /api/${table}] SUCCESS: ${results.length} row(s) inserted`);
+    
+    // Auto-track Purchase event for orders (Server-side)
+    if (table === 'order_items' && results.length > 0) {
+      const orderId = results[0].order_id;
+      // Use a non-blocking background call
+      setImmediate(async () => {
+        try {
+          const orderRes = await query("SELECT * FROM public.orders WHERE id = $1", [orderId]);
+          const order = orderRes.rows[0];
+          if (order) {
+            console.log(`[Auto-CAPI] Triggering Purchase for order: ${order.order_number}`);
+            // Fetch items to send with event
+            const itemsRes = await query("SELECT * FROM public.order_items WHERE order_id = $1", [orderId]);
+            const items = itemsRes.rows;
+            
+            await sendFacebookCapiEvent(
+              'Purchase',
+              order.order_number,
+              `https://kuakatadryfish.xyz/order-success?orderId=${order.order_number}`,
+              { ph: order.customer_phone },
+              {
+                value: parseFloat(order.total),
+                currency: 'BDT',
+                contents: items.map(i => ({
+                  id: i.product_id,
+                  quantity: i.quantity,
+                  item_price: parseFloat(i.price)
+                }))
+              }
+            );
+          }
+        } catch (e) {
+          console.error('[Auto-CAPI] Error:', e.message);
+        }
+      });
+    }
+
     res.json(Array.isArray(data) ? castValues(results) : castValues(results[0]));
   } catch (err) {
     console.error(`[POST /api/${table}] FAILED:`, err.message);
@@ -320,6 +357,65 @@ app.put('/api/:table', async (req, res) => {
     res.status(500).json({ error: err.message, table, data });
   }
 });
+
+// --- Reusable CAPI Logic ---
+async function sendFacebookCapiEvent(eventName, eventId, eventSourceUrl, userData = {}, customData = {}, testMode = false, clientIp = '127.0.0.1') {
+  try {
+    const settingsResult = await query("SELECT * FROM public.site_settings WHERE id = 'global' LIMIT 1");
+    const settings = settingsResult.rows[0];
+    if (!settings || !settings.fb_capi_enabled) return { success: true, skipped: true, reason: 'capi_disabled' };
+
+    const secretResult = await query("SELECT access_token FROM public.capi_secrets WHERE id = 'global' LIMIT 1");
+    const accessToken = secretResult.rows[0]?.access_token;
+    if (!accessToken) return { success: true, skipped: true, reason: 'token_missing' };
+
+    const datasetId = settings.fb_capi_dataset_id || settings.fb_pixel_id;
+    if (!datasetId) return { success: true, skipped: true, reason: 'dataset_id_missing' };
+
+    const apiVersion = settings.fb_capi_api_version || 'v24.0';
+    const crypto = await import('crypto');
+    const hash = (val) => crypto.createHash('sha256').update(String(val).trim().toLowerCase()).digest('hex');
+
+    const hashedUserData = {
+      client_user_agent: userData.client_user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      client_ip_address: clientIp,
+      fbp: userData.fbp,
+      fbc: userData.fbc
+    };
+
+    if (userData.em) hashedUserData.em = [hash(userData.em)];
+    if (userData.ph) hashedUserData.ph = [hash(userData.ph)];
+    if (userData.external_id) hashedUserData.external_id = [hash(userData.external_id)];
+
+    const eventPayload = {
+      event_name: eventName,
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: eventId,
+      action_source: 'website',
+      event_source_url: eventSourceUrl,
+      user_data: hashedUserData,
+      custom_data: customData
+    };
+
+    const requestBody = { data: [eventPayload] };
+    const testEventCode = testMode ? settings.fb_capi_test_event_code : null;
+    if (testEventCode) requestBody.test_event_code = testEventCode;
+
+    const url = `https://graph.facebook.com/${apiVersion}/${datasetId}/events?access_token=${accessToken}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+
+    const result = await response.json();
+    console.log(`[CAPI ${response.ok ? 'Success' : 'Error'}] Event: ${eventName}, ID: ${eventId}`);
+    return { success: response.ok, ...result };
+  } catch (err) {
+    console.error('[CAPI Crash]', err);
+    return { success: false, error: err.message };
+  }
+}
 
 // --- Function Routes ---
 app.all('/api/functions/:name', async (req, res) => {
