@@ -331,13 +331,20 @@ export async function testCapiEvent(): Promise<{ success: boolean; error?: strin
   try {
     const { data, error } = await supabase.functions.invoke('meta-capi', {
       body: {
-        event_name: 'PageView',
-        event_id: generateEventId(),
+        event_name: 'Purchase',
+        event_id: `test_purchase_${Date.now()}`,
         event_source_url: window.location.href,
         user_data: {
           client_user_agent: navigator.userAgent,
+          em: 'test@example.com',
+          ph: '8801700000000',
         },
-        custom_data: {},
+        custom_data: {
+          value: 100,
+          currency: 'BDT',
+          content_type: 'product',
+          contents: [{ id: 'test_prod', quantity: 1, item_price: 100 }],
+        },
         test_mode: true,
       },
     });
