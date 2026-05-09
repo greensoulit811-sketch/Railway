@@ -193,29 +193,54 @@ export const supabase = {
     }
   },
   storage: {
-    from: (bucket) => ({
-      getPublicUrl: (path) => {
-        if (!path) return { data: { publicUrl: '' } };
-        if (path.startsWith('http')) return { data: { publicUrl: path } };
-        return { data: { publicUrl: `${API_URL.replace('/api', '')}/uploads/${path}` } };
-      },
-      upload: async (path, file) => {
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('path', path);
-          const res = await fetch(`${API_URL.replace('/api', '')}/api/storage/upload`, {
-            method: 'POST',
-            body: formData
-          });
-          const data = await res.json();
-          if (res.ok) return { data: { path: data.url }, error: null };
-          return { data: null, error: new Error('Upload failed') };
-        } catch (error) {
-          return { data: null, error };
-        }
+    from: (bucket) => {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (supabaseUrl && supabaseKey && !supabaseUrl.includes('placeholder')) {
+        return {
+          getPublicUrl: (path) => ({
+            data: { publicUrl: `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}` }
+          }),
+          upload: async (path, file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${path}`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${supabaseKey}` },
+              body: formData
+            });
+            const data = await res.json();
+            if (res.ok) return { data: { path: data.Key }, error: null };
+            return { data: null, error: new Error(data.error || 'Upload failed') };
+          }
+        };
       }
-    })
+
+      return {
+        getPublicUrl: (path) => {
+          if (!path) return { data: { publicUrl: '' } };
+          if (path.startsWith('http')) return { data: { publicUrl: path } };
+          return { data: { publicUrl: `${API_URL.replace('/api', '')}/uploads/${path}` } };
+        },
+        upload: async (path, file) => {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('path', path);
+            const res = await fetch(`${API_URL.replace('/api', '')}/api/storage/upload`, {
+              method: 'POST',
+              body: formData
+            });
+            const data = await res.json();
+            if (res.ok) return { data: { path: data.url }, error: null };
+            return { data: null, error: new Error('Upload failed') };
+          } catch (error) {
+            return { data: null, error };
+          }
+        }
+      };
+    }
   },
   functions: {
     invoke: async (name, options = {}) => {

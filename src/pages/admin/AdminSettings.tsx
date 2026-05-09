@@ -1448,10 +1448,30 @@ export default function AdminSettings() {
             </div>
 
             {/* Save Button */}
-            <div className="flex gap-4">
+            <div className="flex items-center justify-between gap-4 pt-6 border-t border-border mt-8">
+              <div className="flex items-center gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    const result = await testCapiEvent();
+                    if (result.success) {
+                      toast.success('Test event sent successfully! Check Facebook Events Manager.');
+                    } else {
+                      toast.error(`Test event failed: ${result.error}`);
+                    }
+                  }}
+                >
+                  Send Test Purchase Event
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Verify your CAPI connection in Facebook Test Events tab.
+                </p>
+              </div>
+
               <Button
                 type="submit"
-                className="btn-accent"
+                className="btn-accent h-12 px-8"
                 disabled={updateSettings.isPending}
               >
                 <Save className="h-4 w-4 mr-2" />
