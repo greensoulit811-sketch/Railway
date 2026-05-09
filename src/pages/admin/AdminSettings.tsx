@@ -1186,8 +1186,8 @@ export default function AdminSettings() {
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter your Pixel ID (10-20 digits). Find it in Facebook Events Manager.
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Find this in Facebook Events Manager.
                   </p>
                 </div>
 

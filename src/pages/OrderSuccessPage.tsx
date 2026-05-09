@@ -15,23 +15,23 @@ export default function OrderSuccessPage() {
 
   useEffect(() => {
     if (order && settings) {
-      console.log('[OrderSuccess] Initiating tracking for order:', order.order_number);
+      console.log('[Purchase Event] Triggering for order:', order.order_number);
+      console.log('[Purchase Event] Using Pixel ID:', settings.fb_pixel_id);
       
-      // Small delay to ensure everything is ready
       const timer = setTimeout(() => {
         trackPurchase({
-          orderId: order.order_number,
-          value: order.total,
+          transaction_id: order.order_number,
+          value: parseFloat(order.total_amount),
           currency: settings.currency_code || 'BDT',
-          contents: order.order_items?.map(item => ({
-            id: String(item.product_id || ''),
+          items: order.items?.map((item: any) => ({
+            id: item.sku || item.product_id,
+            name: item.product_name,
             quantity: item.quantity,
-            item_price: item.price
-          })) || [],
-          email: order.customer_email || undefined,
-          phone: order.customer_phone || undefined,
+            price: parseFloat(item.price)
+          })) || []
         });
-      }, 500);
+        console.log('[Purchase Event] Sent to Facebook');
+      }, 800);
 
       return () => clearTimeout(timer);
     }
