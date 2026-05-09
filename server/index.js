@@ -236,23 +236,27 @@ app.get('/api/:table', async (req, res) => {
 app.post('/api/:table', async (req, res) => {
   const { table } = req.params;
   const data = req.body;
+  
   try {
-    if (Array.isArray(data)) {
-      const results = [];
-      for (const item of data) {
-        const keys = Object.keys(item);
-        const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-        const result = await query(sql, keys.map(k => item[k]));
-        results.push(result.rows[0]);
-      }
-      res.json(castValues(results));
-    } else {
-      const keys = Object.keys(data);
-      const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-      const result = await query(sql, keys.map(k => data[k]));
-      res.json(castValues(result.rows[0]));
+    const items = Array.isArray(data) ? data : [data];
+    const results = [];
+
+    for (const item of items) {
+      const keys = Object.keys(item).filter(k => k !== 'id' && k !== 'created_at' && k !== 'updated_at');
+      const values = keys.map(k => item[k]);
+      
+      const sql = `INSERT INTO public."${table}" (${keys.map(k => `"${k}"`).join(',')}) 
+                   VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) 
+                   RETURNING *`;
+      
+      const result = await query(sql, values);
+      results.push(result.rows[0]);
     }
+    
+    console.log(`[POST /api/${table}] SUCCESS: ${results.length} row(s) inserted`);
+    res.json(Array.isArray(data) ? castValues(results) : castValues(results[0]));
   } catch (err) {
+    console.error(`[POST /api/${table}] FAILED:`, err.message);
     res.status(500).json({ message: err.message });
   }
 });
