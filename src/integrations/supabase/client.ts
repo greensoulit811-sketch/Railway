@@ -216,5 +216,25 @@ export const supabase = {
         }
       }
     })
+  },
+  functions: {
+    invoke: async (name, options = {}) => {
+      try {
+        const res = await fetch(`${API_URL}/functions/${name}`, {
+          method: options.method || 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            ...options.headers
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined
+        });
+        const data = await res.json();
+        if (res.ok) return { data, error: null };
+        return { data: null, error: new Error(data.error || 'Function execution failed') };
+      } catch (error) {
+        return { data: null, error };
+      }
+    }
   }
 };

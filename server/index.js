@@ -253,6 +253,62 @@ app.put('/api/:table', async (req, res) => {
   }
 });
 
+// --- Function Routes ---
+app.all('/api/functions/:name', async (req, res) => {
+  const { name } = req.params;
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+  const token = authHeader.replace('Bearer ', '');
+  
+  let user;
+  try {
+    user = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (name === 'manage-capi-token') {
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    
+    // Ensure table exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.capi_secrets (
+        id text PRIMARY KEY DEFAULT 'global',
+        access_token text,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    if (req.method === 'POST') {
+      const { access_token } = req.body;
+      if (!access_token) return res.status(400).json({ error: 'Access token is required' });
+      
+      await query(`
+        INSERT INTO public.capi_secrets (id, access_token, updated_at)
+        VALUES ('global', $1, now())
+        ON CONFLICT (id) DO UPDATE SET access_token = $1, updated_at = now()
+      `, [access_token]);
+      
+      return res.json({ success: true, message: 'Access token saved securely' });
+    }
+
+    if (req.method === 'GET') {
+      const result = await query("SELECT access_token, updated_at FROM public.capi_secrets WHERE id = 'global'");
+      const row = result.rows[0];
+      const hasToken = !!row?.access_token;
+      
+      return res.json({
+        has_token: hasToken,
+        updated_at: row?.updated_at || null,
+        masked: hasToken ? row.access_token.substring(0, 4) + '••••••••' : null
+      });
+    }
+  }
+
+  res.status(404).json({ error: 'Function not found' });
+});
+
 app.delete('/api/:table', async (req, res) => {
   const { table } = req.params;
   const { id } = req.query;
