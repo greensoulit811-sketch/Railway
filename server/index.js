@@ -438,10 +438,11 @@ app.all('/api/functions/:name', async (req, res) => {
 
       const result = await response.json();
       if (!response.ok) {
-        console.error('[CAPI Error]', result);
+        console.error('[CAPI Error]', JSON.stringify(result));
         return res.json({ success: false, error: result.error?.message || 'Meta API error' });
       }
 
+      console.log(`[CAPI Success] Event: ${event_name}, ID: ${event_id}, TestMode: ${!!testEventCode}`);
       return res.json({ success: true, events_received: result.events_received });
     } catch (err) {
       console.error('[CAPI Crash]', err);
