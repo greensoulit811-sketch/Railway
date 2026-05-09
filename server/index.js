@@ -224,10 +224,13 @@ app.put('/api/:table', async (req, res) => {
     const results = [];
     
     for (const item of items) {
+      if (table === 'site_settings' || table === 'store_settings') {
+        item.id = 'global';
+      }
+      
       const keys = Object.keys(item);
       let conflictVal = item[conflictTarget];
       
-      // Special handling for site_settings to ensure only one global row
       if (table === 'site_settings') conflictVal = 'global';
       if (!conflictVal && table === 'store_settings') conflictVal = 'global';
 
