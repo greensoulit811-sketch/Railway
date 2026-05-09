@@ -183,7 +183,7 @@ export default function AdminSettings() {
         fb_capi_enabled: settings.fb_capi_enabled || false,
         fb_capi_dataset_id: settings.fb_capi_dataset_id || '',
         fb_capi_test_event_code: settings.fb_capi_test_event_code || '',
-        fb_capi_api_version: settings.fb_capi_api_version || 'v20.0',
+        fb_capi_api_version: settings.fb_capi_api_version || 'v24.0',
       });
     }
   }, [settings]);
@@ -314,7 +314,7 @@ export default function AdminSettings() {
         fb_capi_enabled: pixelData.fb_capi_enabled,
         fb_capi_dataset_id: pixelData.fb_capi_dataset_id.trim() || null,
         fb_capi_test_event_code: pixelData.fb_capi_test_event_code.trim() || null,
-        fb_capi_api_version: pixelData.fb_capi_api_version || 'v20.0',
+        fb_capi_api_version: pixelData.fb_capi_api_version || 'v24.0',
       } as any);
       toast.success('Marketing settings saved successfully');
     } catch (error) {

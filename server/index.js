@@ -395,7 +395,7 @@ app.all('/api/functions/:name', async (req, res) => {
       const datasetId = settings.fb_capi_dataset_id || settings.fb_pixel_id;
       if (!datasetId) return res.json({ success: true, skipped: true, reason: 'dataset_id_missing' });
 
-      const apiVersion = settings.fb_capi_api_version || 'v20.0';
+      const apiVersion = settings.fb_capi_api_version || 'v24.0';
 
       // 3. Helper for hashing
       const crypto = await import('crypto');
