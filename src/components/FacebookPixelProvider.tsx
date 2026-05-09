@@ -39,8 +39,8 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
       return;
     }
 
-    // Check consent if required
-    if (settings.cookie_consent_enabled && !hasConsent()) return;
+    // Check consent if required (removed mandatory check to allow automatic tracking)
+    // if (settings.cookie_consent_enabled && !hasConsent()) return;
 
     try {
       console.log('[FB Pixel Provider] Initializing with ID:', settings.fb_pixel_id);
