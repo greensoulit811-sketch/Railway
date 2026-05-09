@@ -167,7 +167,7 @@ app.get('/api/:table', async (req, res) => {
     const order = req.query._order || (table === 'slider_slides' ? 'ASC' : 'DESC');
     sql += ` ORDER BY ${sort} ${order} LIMIT 200`;
     const result = await query(sql, params);
-    if (table === 'site_settings' || table === 'store_settings') res.json(castValues(result.rows[0]) || {});
+    if (table === 'site_settings' || table === 'store_settings') res.json(result.rows.length > 0 ? castValues(result.rows[0]) : null);
     else res.json(castValues(result.rows));
   } catch (err) {
     res.status(500).json({ message: err.message });
