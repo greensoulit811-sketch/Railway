@@ -144,33 +144,36 @@ app.get('/api/orders', async (req, res) => {
 // --- Dedicated Route for Site Settings ---
 app.put('/api/site_settings', async (req, res) => {
   const data = req.body;
-  console.log('[DEBUG] Saving Site Settings:', JSON.stringify(data));
+  console.log('[DEBUG] Received site_settings update request:', JSON.stringify(data));
   try {
-    // Ensure id is global
-    const item = { ...data, id: 'global' };
-    const keys = Object.keys(item).filter(k => k !== 'id');
+    // 1. Prepare data (ensure id is global)
+    const item = { ...data };
+    delete item.id; // Remove id from updates
+    const keys = Object.keys(item);
     
-    // Check if exists
-    const existCheck = await query("SELECT id FROM public.site_settings WHERE id = 'global'");
-    
-    let result;
-    if (existCheck.rows.length > 0) {
-      // Update
-      const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(',');
-      const sql = `UPDATE public.site_settings SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;
-      result = await query(sql, [...keys.map(k => item[k]), 'global']);
-      console.log('[DEBUG] Site Settings UPDATED');
-    } else {
-      // Insert
-      const allKeys = Object.keys(item);
-      const sql = `INSERT INTO public.site_settings (${allKeys.join(',')}) VALUES (${allKeys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-      result = await query(sql, allKeys.map(k => item[k]));
-      console.log('[DEBUG] Site Settings INSERTED');
+    if (keys.length === 0) {
+      return res.json({ message: 'No fields to update' });
     }
+
+    // 2. Try to update existing row first
+    const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+    const updateSql = `UPDATE public.site_settings SET ${setClause}, updated_at = NOW() WHERE id = 'global' RETURNING *`;
+    const updateResult = await query(updateSql, keys.map(k => item[k]));
+
+    if (updateResult.rows.length > 0) {
+      console.log('[DEBUG] site_settings row UPDATED successfully');
+      return res.json(castValues(updateResult.rows[0]));
+    }
+
+    // 3. If no row updated, insert a new one
+    console.log('[DEBUG] site_settings row not found, INSERTING new row');
+    const allKeys = ['id', ...keys];
+    const insertSql = `INSERT INTO public.site_settings (${allKeys.map(k => `"${k}"`).join(', ')}) VALUES ($1, ${keys.map((_, i) => `$${i + 2}`).join(', ')}) RETURNING *`;
+    const insertResult = await query(insertSql, ['global', ...keys.map(k => item[k])]);
     
-    res.json(castValues(result.rows[0]));
+    res.json(castValues(insertResult.rows[0]));
   } catch (err) {
-    console.error('[ERROR] Site Settings Save Failed:', err);
+    console.error('[ERROR] site_settings Save Failed:', err);
     res.status(500).json({ error: err.message });
   }
 });
