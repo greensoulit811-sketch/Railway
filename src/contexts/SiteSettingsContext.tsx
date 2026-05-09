@@ -160,7 +160,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) throw error;
       return (data as SiteSettings) || defaultSettings;
     },
-    staleTime: 30 * 1000, // 30 seconds - ensures quick propagation after admin saves
+    staleTime: 0, // Fetch fresh every time to avoid cache issues in admin
     retry: 2,
   });
 
