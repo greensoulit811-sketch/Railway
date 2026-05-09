@@ -71,6 +71,7 @@ async function sendCapiEvent(
         event_source_url: params.eventSourceUrl || window.location.href,
         user_data: userData,
         custom_data: params.customData || {},
+        test_mode: !!testEventCode,
       },
     });
 

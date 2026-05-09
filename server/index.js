@@ -228,31 +228,33 @@ app.put('/api/:table', async (req, res) => {
     
     for (const item of items) {
       const keys = Object.keys(item);
-      const vals = Object.values(item);
-      const conflictVal = item[conflictTarget];
+      let conflictVal = item[conflictTarget];
       
-      // Check if exists
+      // Special handling for site_settings to ensure only one global row
+      if (table === 'site_settings') conflictVal = 'global';
+      if (!conflictVal && table === 'store_settings') conflictVal = 'global';
+
+      if (!conflictVal) throw new Error(`Missing conflict target ${conflictTarget}`);
+
       const existCheck = await query(`SELECT ${conflictTarget} FROM public.${table} WHERE ${conflictTarget} = $1`, [conflictVal]);
       
       if (existCheck.rows.length > 0) {
-        // Update
         const updates = keys.filter(k => k !== conflictTarget);
         const setClause = updates.map((k, i) => `${k} = $${i + 1}`).join(',');
         const sql = `UPDATE public.${table} SET ${setClause} WHERE ${conflictTarget} = $${updates.length + 1} RETURNING *`;
         const result = await query(sql, [...updates.map(k => item[k]), conflictVal]);
         results.push(result.rows[0]);
       } else {
-        // Insert
         const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-        const result = await query(sql, vals);
+        const result = await query(sql, Object.values(item));
         results.push(result.rows[0]);
       }
     }
     
     res.json(castValues(Array.isArray(data) ? results : results[0]));
   } catch (err) {
-    console.error('Upsert error:', err);
-    res.status(500).json({ message: err.message });
+    console.error(`[UPSERT ERROR] ${table}:`, err);
+    res.status(500).json({ error: err.message, table, data });
   }
 });
 
