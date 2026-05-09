@@ -339,8 +339,11 @@ export const useUpdateSiteSettings = () => {
     mutationFn: async (settings: Partial<Omit<SiteSettings, 'id' | 'updated_at'>>) => {
       const { data, error } = await supabase
         .from('site_settings')
-        .update(settings)
-        .eq('id', 'global')
+        .upsert({ 
+          ...settings, 
+          id: 'global',
+          updated_at: new Date().toISOString()
+        })
         .select()
         .single();
       

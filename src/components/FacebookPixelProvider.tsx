@@ -15,21 +15,35 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
   const location = useLocation();
   const initializedRef = useRef(false);
   const lastPathRef = useRef<string>('');
+  const lastInitializedId = useRef<string | null>(null);
+  const lastInitializedCapi = useRef<boolean | null>(null);
 
   // Initialize pixel when settings are loaded
   useEffect(() => {
-    if (initializedRef.current) return;
-    
     // Don't load on admin routes
     if (location.pathname.startsWith('/admin')) return;
 
     // Check if pixel is enabled
-    if (!settings.fb_pixel_enabled || !settings.fb_pixel_id) return;
+    if (!settings.fb_pixel_enabled || !settings.fb_pixel_id) {
+      initializedRef.current = false;
+      lastInitializedId.current = null;
+      return;
+    }
+
+    // Check if already initialized with these settings
+    if (
+      initializedRef.current && 
+      lastInitializedId.current === settings.fb_pixel_id &&
+      lastInitializedCapi.current === settings.fb_capi_enabled
+    ) {
+      return;
+    }
 
     // Check consent if required
     if (settings.cookie_consent_enabled && !hasConsent()) return;
 
     try {
+      console.log('[FB Pixel Provider] Initializing with ID:', settings.fb_pixel_id);
       const success = initFacebookPixel(
         settings.fb_pixel_id,
         settings.fb_pixel_test_event_code,
@@ -38,13 +52,15 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
 
       if (success) {
         initializedRef.current = true;
+        lastInitializedId.current = settings.fb_pixel_id;
+        lastInitializedCapi.current = settings.fb_capi_enabled || false;
         trackPageView();
         lastPathRef.current = location.pathname;
       }
     } catch (error) {
       console.warn('[FB Pixel Provider] Init error:', error);
     }
-  }, [settings, location.pathname]);
+  }, [settings.fb_pixel_enabled, settings.fb_pixel_id, settings.fb_capi_enabled, settings.cookie_consent_enabled, location.pathname]);
 
   // Track page views on route change
   useEffect(() => {
