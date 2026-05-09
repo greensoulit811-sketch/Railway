@@ -229,21 +229,24 @@ app.put('/api/:table', async (req, res) => {
     for (const item of items) {
       const keys = Object.keys(item);
       const vals = Object.values(item);
+      const conflictVal = item[conflictTarget];
       
-      const updateClause = keys
-        .filter(k => k !== conflictTarget)
-        .map((k, i) => `${k} = EXCLUDED.${k}`)
-        .join(',');
-        
-      const sql = `
-        INSERT INTO public.${table} (${keys.join(',')}) 
-        VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) 
-        ON CONFLICT (${conflictTarget}) 
-        DO UPDATE SET ${updateClause}
-        RETURNING *`;
-        
-      const result = await query(sql, vals);
-      results.push(result.rows[0]);
+      // Check if exists
+      const existCheck = await query(`SELECT ${conflictTarget} FROM public.${table} WHERE ${conflictTarget} = $1`, [conflictVal]);
+      
+      if (existCheck.rows.length > 0) {
+        // Update
+        const updates = keys.filter(k => k !== conflictTarget);
+        const setClause = updates.map((k, i) => `${k} = $${i + 1}`).join(',');
+        const sql = `UPDATE public.${table} SET ${setClause} WHERE ${conflictTarget} = $${updates.length + 1} RETURNING *`;
+        const result = await query(sql, [...updates.map(k => item[k]), conflictVal]);
+        results.push(result.rows[0]);
+      } else {
+        // Insert
+        const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
+        const result = await query(sql, vals);
+        results.push(result.rows[0]);
+      }
     }
     
     res.json(castValues(Array.isArray(data) ? results : results[0]));
