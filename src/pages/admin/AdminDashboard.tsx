@@ -141,8 +141,8 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap">{order.customer_name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(Number(order.total))}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status || 'pending')}`}>
+                        {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">

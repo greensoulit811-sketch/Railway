@@ -141,13 +141,11 @@ export function useUpdateStoreSettings() {
         updated_at: new Date().toISOString(),
       }));
 
-      for (const upsert of upserts) {
-        const { error } = await supabase
-          .from('store_settings')
-          .upsert(upsert, { onConflict: 'key' });
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert(upserts, { onConflict: 'key' });
 
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       return true;
     },

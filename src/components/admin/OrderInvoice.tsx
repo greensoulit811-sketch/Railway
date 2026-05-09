@@ -16,12 +16,12 @@ export const OrderInvoice = forwardRef<HTMLDivElement, OrderInvoiceProps>(
         case 'cod': return 'Cash on Delivery';
         case 'card': return 'Card Payment';
         case 'bkash': return 'bKash';
-        default: return method.toUpperCase();
+        default: return (method || 'cod').toUpperCase();
       }
     };
 
     const getStatusLabel = (status: string) => {
-      return status.charAt(0).toUpperCase() + status.slice(1);
+      return (status || 'pending').charAt(0).toUpperCase() + (status || 'pending').slice(1);
     };
 
     return (

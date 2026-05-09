@@ -60,6 +60,13 @@ class SupabaseQueryBuilder {
     return this;
   }
 
+  upsert(data, options = {}) {
+    this.method = 'PUT';
+    this.body = data;
+    this.upsertOptions = options;
+    return this;
+  }
+
   eq(column, value) {
     this.filters[column] = value;
     return this;
@@ -108,6 +115,9 @@ class SupabaseQueryBuilder {
       };
 
       if (this.body) options.body = JSON.stringify(this.body);
+      if (this.method === 'PUT' && this.upsertOptions) {
+        options.headers['X-Upsert-Conflict'] = this.upsertOptions.onConflict || 'id';
+      }
 
       const response = await fetch(url, options);
       const rawData = await response.json();
@@ -193,6 +203,7 @@ export const supabase = {
         try {
           const formData = new FormData();
           formData.append('file', file);
+          formData.append('path', path);
           const res = await fetch(`${API_URL.replace('/api', '')}/api/storage/upload`, {
             method: 'POST',
             body: formData

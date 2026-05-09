@@ -93,10 +93,23 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/storage/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  
+  const targetPath = req.body.path || req.file.filename;
+  const finalFilePath = path.join(uploadsDir, targetPath);
+  const finalDir = path.dirname(finalFilePath);
+  
+  if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true });
+  
+  // Move file from temp name to target path if different
+  if (req.file.path !== finalFilePath) {
+    if (fs.existsSync(finalFilePath)) fs.unlinkSync(finalFilePath);
+    fs.renameSync(req.file.path, finalFilePath);
+  }
+
   const protocol = req.protocol;
   const host = req.get('host');
-  const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-  res.json({ url: fileUrl, path: req.file.filename });
+  const fileUrl = `${protocol}://${host}/uploads/${targetPath.replace(/\\/g, '/')}`;
+  res.json({ url: fileUrl, path: targetPath });
 });
 
 // --- Order Routes with JOIN support ---
@@ -200,6 +213,42 @@ app.patch('/api/:table', async (req, res) => {
     const result = await query(sql, [...vals, targetId]);
     res.json(castValues(result.rows[0]));
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/:table', async (req, res) => {
+  const { table } = req.params;
+  const data = req.body;
+  const conflictTarget = req.headers['x-upsert-conflict'] || 'id';
+  
+  try {
+    const items = Array.isArray(data) ? data : [data];
+    const results = [];
+    
+    for (const item of items) {
+      const keys = Object.keys(item);
+      const vals = Object.values(item);
+      
+      const updateClause = keys
+        .filter(k => k !== conflictTarget)
+        .map((k, i) => `${k} = EXCLUDED.${k}`)
+        .join(',');
+        
+      const sql = `
+        INSERT INTO public.${table} (${keys.join(',')}) 
+        VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) 
+        ON CONFLICT (${conflictTarget}) 
+        DO UPDATE SET ${updateClause}
+        RETURNING *`;
+        
+      const result = await query(sql, vals);
+      results.push(result.rows[0]);
+    }
+    
+    res.json(castValues(Array.isArray(data) ? results : results[0]));
+  } catch (err) {
+    console.error('Upsert error:', err);
     res.status(500).json({ message: err.message });
   }
 });

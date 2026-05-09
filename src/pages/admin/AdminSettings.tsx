@@ -902,7 +902,7 @@ export default function AdminSettings() {
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">Language</p>
-                  <p className="font-semibold">{settings.language.toUpperCase()}</p>
+                  <p className="font-semibold">{(settings.language || 'en').toUpperCase()}</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
