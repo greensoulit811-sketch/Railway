@@ -182,17 +182,15 @@ app.post('/api/:table', async (req, res) => {
       const results = [];
       for (const item of data) {
         const keys = Object.keys(item);
-        const vals = Object.values(item);
         const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-        const result = await query(sql, vals);
+        const result = await query(sql, keys.map(k => item[k]));
         results.push(result.rows[0]);
       }
       res.json(castValues(results));
     } else {
       const keys = Object.keys(data);
-      const vals = Object.values(data);
       const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-      const result = await query(sql, vals);
+      const result = await query(sql, keys.map(k => data[k]));
       res.json(castValues(result.rows[0]));
     }
   } catch (err) {
@@ -207,10 +205,9 @@ app.patch('/api/:table', async (req, res) => {
   const targetId = id || req.query.id;
   try {
     const keys = Object.keys(updates);
-    const vals = Object.values(updates);
     const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(',');
     const sql = `UPDATE public.${table} SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;
-    const result = await query(sql, [...vals, targetId]);
+    const result = await query(sql, [...keys.map(k => updates[k]), targetId]);
     res.json(castValues(result.rows[0]));
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -246,7 +243,7 @@ app.put('/api/:table', async (req, res) => {
         results.push(result.rows[0]);
       } else {
         const sql = `INSERT INTO public.${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`;
-        const result = await query(sql, Object.values(item));
+        const result = await query(sql, keys.map(k => item[k]));
         results.push(result.rows[0]);
       }
     }
