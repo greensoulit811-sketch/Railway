@@ -273,7 +273,11 @@ app.post('/api/:table', async (req, res) => {
               'Purchase',
               order.order_number,
               `https://kuakatadryfish.xyz/order-success?orderId=${order.order_number}`,
-              { ph: order.customer_phone },
+              { 
+                ph: order.customer_phone,
+                em: order.customer_email,
+                client_user_agent: 'Server-Side-Auto-Track'
+              },
               {
                 value: parseFloat(order.total),
                 currency: 'BDT',
@@ -282,7 +286,9 @@ app.post('/api/:table', async (req, res) => {
                   quantity: i.quantity,
                   item_price: parseFloat(i.price)
                 }))
-              }
+              },
+              !!settings.fb_capi_test_event_code, // Enable test mode if code exists
+              '127.0.0.1'
             );
           }
         } catch (e) {
