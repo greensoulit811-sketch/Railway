@@ -20,7 +20,7 @@ export function Header() {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const storeName = storeSettings?.store_name || 'STORE';
+  const storeName = storeSettings?.store_name || 'Kuakata Dryfish';
   const storeLogo = storeSettings?.store_logo || '';
 
   const navigation = [
@@ -32,8 +32,8 @@ export function Header() {
   ];
 
   const languageOptions = [
-    { code: 'en', label: 'English' },
-    { code: 'hi', label: 'हिन्दी' },
+    // { code: 'en', label: 'English' },
+    // { code: 'hi', label: 'हिन्दी' },
     { code: 'bn', label: 'বাংলা' },
   ];
 
