@@ -232,21 +232,28 @@ export const supabase = {
           
           // If the path already includes 'uploads/', don't add it again
           const prefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/';
-          const baseUrl = API_URL.replace('/api', '');
+          let baseUrl = API_URL.replace('/api', '');
           
-          return { data: { publicUrl: `${baseUrl}/${prefix}${cleanPath}` } };
+          // If baseUrl is empty (meaning API_URL was just '/api'), use root relative
+          if (!baseUrl && API_URL.startsWith('/')) baseUrl = '';
+          
+          const separator = (baseUrl && !baseUrl.endsWith('/')) ? '/' : '';
+          const finalPrefix = (baseUrl === '' && !prefix.startsWith('/')) ? '/' + prefix : prefix;
+          
+          return { data: { publicUrl: `${baseUrl}${separator}${finalPrefix}${cleanPath}` } };
         },
         upload: async (path, file) => {
           try {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('path', path);
+
             const res = await fetch(`${API_URL.replace('/api', '')}/api/storage/upload`, {
               method: 'POST',
               body: formData
             });
             const data = await res.json();
-            if (res.ok) return { data: { path: data.path }, error: null };
+            if (res.ok) return { data: { path: data.url }, error: null };
             return { data: null, error: new Error('Upload failed') };
           } catch (error) {
             return { data: null, error };
