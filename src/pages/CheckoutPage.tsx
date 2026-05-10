@@ -69,8 +69,8 @@ export default function CheckoutPage() {
   }, [paymentMethods]);
 
   const selectedShipping = shippingMethods.find(m => m.id === formData.shippingMethodId);
-  const shippingCost = selectedShipping?.base_rate || 0;
-  const total = subtotal - discountAmount + shippingCost;
+  const shippingCost = Number(selectedShipping?.base_rate || 0);
+  const total = Number(subtotal) - Number(discountAmount) + shippingCost;
 
   const selectedPayment = paymentMethods.find(m => m.id === formData.paymentMethodId);
 
@@ -81,9 +81,9 @@ export default function CheckoutPage() {
 
   if (hasPartial && selectedPayment) {
     if (selectedPayment.partial_type === 'delivery_charge') {
-      advanceAmount = shippingCost;
+      advanceAmount = Number(shippingCost);
     } else if (selectedPayment.partial_type === 'fixed_amount') {
-      advanceAmount = Math.min(selectedPayment.fixed_partial_amount || 0, total);
+      advanceAmount = Math.min(Number(selectedPayment.fixed_partial_amount || 0), total);
     }
     dueOnDelivery = total - advanceAmount;
   }

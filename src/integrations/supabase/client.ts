@@ -14,7 +14,12 @@ const autoCast = (obj) => {
   if (Array.isArray(obj)) return obj.map(autoCast);
   if (typeof obj === 'object') {
     const newObj = { ...obj };
-    const numericFields = ['price', 'sale_price', 'cost', 'amount', 'total', 'subtotal', 'delivery_charge', 'discount', 'rating', 'stock', 'shipping_cost', 'paid_amount', 'due_amount'];
+    const numericFields = [
+      'price', 'sale_price', 'cost', 'amount', 'total', 'subtotal', 
+      'delivery_charge', 'discount', 'rating', 'stock', 'shipping_cost', 
+      'paid_amount', 'due_amount', 'base_rate', 'fixed_partial_amount',
+      'advance_amount', 'due_on_delivery', 'unit_price', 'line_total'
+    ];
     for (const key in newObj) {
       if (numericFields.includes(key) && newObj[key] !== null) {
         const num = Number(newObj[key]);
