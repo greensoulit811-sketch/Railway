@@ -226,7 +226,15 @@ export const supabase = {
         getPublicUrl: (path) => {
           if (!path) return { data: { publicUrl: '' } };
           if (path.startsWith('http')) return { data: { publicUrl: path } };
-          return { data: { publicUrl: `${API_URL.replace('/api', '')}/uploads/${path}` } };
+          
+          // Remove leading slash if present
+          let cleanPath = path.startsWith('/') ? path.substring(1) : path;
+          
+          // If the path already includes 'uploads/', don't add it again
+          const prefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/';
+          const baseUrl = API_URL.replace('/api', '');
+          
+          return { data: { publicUrl: `${baseUrl}/${prefix}${cleanPath}` } };
         },
         upload: async (path, file) => {
           try {
@@ -238,7 +246,7 @@ export const supabase = {
               body: formData
             });
             const data = await res.json();
-            if (res.ok) return { data: { path: data.url }, error: null };
+            if (res.ok) return { data: { path: data.path }, error: null };
             return { data: null, error: new Error('Upload failed') };
           } catch (error) {
             return { data: null, error };
