@@ -168,7 +168,6 @@ function trackEvent(
   }
 ): string {
   const eventId = options?.eventId || generateEventId();
-  console.log(`[FB Pixel] Tracking event: ${eventName}`, { eventId, capiEnabled });
 
   // Browser pixel
   if (!window.location.pathname.startsWith('/admin')) {
@@ -179,27 +178,19 @@ function trackEvent(
           eventParams.test_event_code = testEventCode;
         }
         window.fbq('track', eventName, eventParams, { eventID: eventId });
-        console.log(`[FB Pixel] Browser Event Sent: ${eventName}`);
-      } else {
-        console.warn(`[FB Pixel] Browser pixel not ready for ${eventName}`);
       }
     } catch (error) {
-      console.warn(`[FB Pixel] Failed to track ${eventName} in browser:`, error);
+      // Fail silently in production
     }
   }
 
   // Server-side CAPI (fire-and-forget, never blocks)
   if (!options?.skipCapi && !window.location.pathname.startsWith('/admin')) {
-    console.log(`[CAPI] Preparing to send ${eventName} to server...`);
     sendCapiEvent(eventName, {
       eventId,
       userData: options?.userData,
       customData: params,
-    }).then(() => {
-      console.log(`[CAPI] Request sent for ${eventName}`);
-    }).catch((err) => {
-      console.warn(`[CAPI] Failed to send ${eventName}:`, err);
-    });
+    }).catch(() => {});
   }
 
   return eventId;

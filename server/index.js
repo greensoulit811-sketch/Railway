@@ -418,10 +418,8 @@ async function sendFacebookCapiEvent(eventName, eventId, eventSourceUrl, userDat
     });
 
     const result = await response.json();
-    console.log(`[CAPI ${response.ok ? 'Success' : 'Error'}] Event: ${eventName}, ID: ${eventId}`);
     return { success: response.ok, ...result };
   } catch (err) {
-    console.error('[CAPI Crash]', err);
     return { success: false, error: err.message };
   }
 }
@@ -432,7 +430,6 @@ app.all('/api/functions/:name', async (req, res) => {
   
   // 1. Public functions (no auth required)
   if (name === 'meta-capi') {
-    console.log(`[CAPI] Received request for event: ${req.body?.event_name || 'unknown'}`);
     const { 
       event_name, 
       event_id, 
