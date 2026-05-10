@@ -149,6 +149,8 @@ app.put('/api/site_settings', async (req, res) => {
     // 1. Prepare data (ensure id is global)
     const item = { ...data };
     delete item.id; // Remove id from updates
+    delete item.created_at; // Remove created_at from updates
+    delete item.updated_at; // Remove updated_at from updates
     const keys = Object.keys(item);
     
     if (keys.length === 0) {
@@ -267,7 +269,8 @@ app.post('/api/:table', async (req, res) => {
             console.log(`[Auto-CAPI] Triggering Purchase for order: ${order.order_number}`);
             // Fetch items to send with event
             const itemsRes = await query("SELECT * FROM public.order_items WHERE order_id = $1", [orderId]);
-            const items = itemsRes.rows;
+            const settingsRes = await query("SELECT * FROM public.site_settings WHERE id = 'global' LIMIT 1");
+            const currentSettings = settingsRes.rows[0] || {};
             
             await sendFacebookCapiEvent(
               'Purchase',
@@ -287,7 +290,7 @@ app.post('/api/:table', async (req, res) => {
                   item_price: parseFloat(i.price)
                 }))
               },
-              !!settings.fb_capi_test_event_code, // Enable test mode if code exists
+              !!currentSettings.fb_capi_test_event_code, // Use correctly fetched settings
               '127.0.0.1'
             );
           }
