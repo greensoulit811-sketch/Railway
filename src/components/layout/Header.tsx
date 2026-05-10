@@ -77,17 +77,11 @@ export function Header() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            {storeLogo ? (
-              <img 
-                src={storeLogo} 
-                alt={storeName} 
-                className="h-12 md:h-14 w-auto object-contain"
-              />
-            ) : (
-              <span className="text-2xl md:text-4xl font-bold tracking-tight">
-                {storeName}
-              </span>
-            )}
+            <img 
+              src="/favicon.ico" 
+              alt={storeName} 
+              className="h-12 md:h-14 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop navigation */}
