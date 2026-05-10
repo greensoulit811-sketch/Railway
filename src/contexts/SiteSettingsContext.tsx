@@ -158,7 +158,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .maybeSingle();
       
       if (error) throw error;
-      return (data as SiteSettings) || defaultSettings;
+      return { ...defaultSettings, ...(data || {}) } as SiteSettings;
     },
     staleTime: 0, // Fetch fresh every time to avoid cache issues in admin
     retry: 2,
@@ -292,15 +292,19 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const formatCurrency = useCallback((amount: any): string => {
     const numericAmount = typeof amount === 'number' ? amount : (Number(amount) || 0);
     try {
-      return new Intl.NumberFormat(activeSettings.currency_locale, {
+      const locale = activeSettings.currency_locale || defaultSettings.currency_locale;
+      const currency = activeSettings.currency_code || defaultSettings.currency_code;
+      
+      return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: activeSettings.currency_code,
+        currency: currency,
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }).format(numericAmount);
     } catch {
       // Fallback if locale/currency is not supported
-      return `${activeSettings.currency_symbol}${numericAmount.toFixed(2)}`;
+      const symbol = activeSettings.currency_symbol || defaultSettings.currency_symbol || '৳';
+      return `${symbol}${numericAmount.toFixed(2)}`;
     }
   }, [activeSettings.currency_locale, activeSettings.currency_code, activeSettings.currency_symbol]);
 
