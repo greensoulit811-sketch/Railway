@@ -30,12 +30,10 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
       return;
     }
 
-    // Check if already initialized with these settings
-    if (
-      initializedRef.current && 
-      lastInitializedId.current === settings.fb_pixel_id &&
-      lastInitializedCapi.current === settings.fb_capi_enabled
-    ) {
+    // Check if already initialized with these exact settings on this page
+    const currentConfigKey = `${settings.fb_pixel_id}|${settings.fb_pixel_test_event_code}|${settings.fb_capi_enabled}|${settings.fb_capi_test_event_code}`;
+    
+    if (initializedRef.current && lastInitializedId.current === currentConfigKey && lastPathRef.current === location.pathname) {
       return;
     }
 
@@ -52,8 +50,7 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
 
       if (success) {
         initializedRef.current = true;
-        lastInitializedId.current = settings.fb_pixel_id;
-        lastInitializedCapi.current = settings.fb_capi_enabled || false;
+        lastInitializedId.current = currentConfigKey;
         trackPageView();
         lastPathRef.current = location.pathname;
       }

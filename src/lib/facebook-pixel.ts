@@ -91,29 +91,31 @@ export function initFacebookPixel(
   testCode?: string | null,
   enableCapi?: boolean
 ): boolean {
-  if (pixelInitialized) return true;
   if (!id || !/^\d{10,20}$/.test(id)) {
     console.warn('[FB Pixel] Invalid Pixel ID');
     return false;
   }
 
-  // Don't load on admin routes
-  if (window.location.pathname.startsWith('/admin')) {
-    return false;
-  }
+  // Update config
+  const oldId = pixelId;
+  pixelId = id;
+  testEventCode = testCode || null;
+  capiEnabled = enableCapi || false;
 
   try {
-    pixelId = id;
-    testEventCode = testCode || null;
-    capiEnabled = enableCapi || false;
+    // If already loaded, just re-initialize with the potentially new ID
+    if (window.fbq) {
+      window.fbq('init', pixelId);
+      pixelInitialized = true;
+      console.log('[FB Pixel] Re-initialized with ID:', pixelId);
+      return true;
+    }
 
     // Facebook Pixel base code
     const f = window;
     const b = document;
     const e = 'script';
     
-    if (f.fbq) return true;
-
     const n: any = (f.fbq = function () {
       n.callMethod
         ? n.callMethod.apply(n, arguments)

@@ -1191,21 +1191,32 @@ export default function AdminSettings() {
                   </p>
                 </div>
 
-                {/* Test Event Code */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Test Event Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={pixelData.fb_pixel_test_event_code}
-                    onChange={(e) => setPixelData({ ...pixelData, fb_pixel_test_event_code: e.target.value })}
-                    className="input-shop"
-                    placeholder="TEST12345"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Use this for testing events in Facebook's Test Events tool
-                  </p>
+                {/* Advanced Section for Browser Pixel */}
+                <div className="pt-2 border-t border-border/50">
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="pixel-advanced" className="border-none">
+                      <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline">
+                        Advanced: Testing
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 pb-2">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            Test Event Code (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={pixelData.fb_pixel_test_event_code}
+                            onChange={(e) => setPixelData({ ...pixelData, fb_pixel_test_event_code: e.target.value })}
+                            className="input-shop"
+                            placeholder="TEST12345"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use this for testing events in Facebook's Test Events tool
+                          </p>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </div>
               </div>
             </div>
@@ -1335,23 +1346,6 @@ export default function AdminSettings() {
                       )}
                     </div>
 
-                    {/* Test Event Code */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        CAPI Test Event Code (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={pixelData.fb_capi_test_event_code}
-                        onChange={(e) => setPixelData({ ...pixelData, fb_capi_test_event_code: e.target.value })}
-                        className="input-shop"
-                        placeholder="TEST12345"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Events with this code appear in Facebook's Test Events tool
-                      </p>
-                    </div>
-
                     {/* API Version */}
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -1366,31 +1360,61 @@ export default function AdminSettings() {
                       />
                     </div>
 
-                    {/* Test Button */}
-                    <div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleTestCapi}
-                        disabled={isTestingCapi}
-                      >
-                        {isTestingCapi ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Server className="h-4 w-4 mr-2" />
-                        )}
-                        Send Test Event
-                      </Button>
-                      {capiTestResult && (
-                        <div className={`mt-2 flex items-center gap-2 text-sm ${capiTestResult.success ? 'text-green-600' : 'text-destructive'}`}>
-                          {capiTestResult.success ? (
-                            <CheckCircle className="h-4 w-4" />
-                          ) : (
-                            <XCircle className="h-4 w-4" />
-                          )}
-                          {capiTestResult.message}
-                        </div>
-                      )}
+                    {/* Advanced Testing Accordion */}
+                    <div className="pt-4 border-t border-border/50">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="testing" className="border-none">
+                          <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline">
+                            Advanced: Testing & Verification
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-4 pb-2 space-y-6">
+                            {/* CAPI Test Event Code */}
+                            <div>
+                              <label className="block text-sm font-medium mb-2">
+                                CAPI Test Event Code (Optional)
+                              </label>
+                              <input
+                                type="text"
+                                value={pixelData.fb_capi_test_event_code}
+                                onChange={(e) => setPixelData({ ...pixelData, fb_capi_test_event_code: e.target.value })}
+                                className="input-shop"
+                                placeholder="TEST12345"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Events with this code appear in Facebook's Test Events tool
+                              </p>
+                            </div>
+
+                            {/* Test Button */}
+                            <div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleTestCapi}
+                                disabled={isTestingCapi}
+                                className="w-full sm:w-auto"
+                              >
+                                {isTestingCapi ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Server className="h-4 w-4 mr-2" />
+                                )}
+                                Send Manual Test Event
+                              </Button>
+                              {capiTestResult && (
+                                <div className={`mt-2 flex items-center gap-2 text-sm ${capiTestResult.success ? 'text-green-600' : 'text-destructive'}`}>
+                                  {capiTestResult.success ? (
+                                    <CheckCircle className="h-4 w-4" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4" />
+                                  )}
+                                  {capiTestResult.message}
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
                   </>
                 )}
