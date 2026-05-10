@@ -429,6 +429,7 @@ app.all('/api/functions/:name', async (req, res) => {
   
   // 1. Public functions (no auth required)
   if (name === 'meta-capi') {
+    console.log(`[CAPI] Received request for event: ${req.body?.event_name || 'unknown'}`);
     const { 
       event_name, 
       event_id, 
