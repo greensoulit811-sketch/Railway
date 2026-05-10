@@ -426,11 +426,95 @@ async function sendFacebookCapiEvent(eventName, eventId, eventSourceUrl, userDat
 // --- Function Routes ---
 app.all('/api/functions/:name', async (req, res) => {
   const { name } = req.params;
+  
+  // 1. Public functions (no auth required)
+  if (name === 'meta-capi') {
+    const { 
+      event_name, 
+      event_id, 
+      event_source_url, 
+      user_data = {}, 
+      custom_data = {},
+      test_mode = false 
+    } = req.body;
+
+    if (!event_name || !event_id) return res.status(400).json({ error: 'event_name and event_id are required' });
+
+    try {
+      // Get settings
+      const settingsResult = await query("SELECT * FROM public.site_settings WHERE id = 'global' LIMIT 1");
+      const settings = settingsResult.rows[0];
+      if (!settings || !settings.fb_capi_enabled) {
+        return res.json({ success: true, skipped: true, reason: 'capi_disabled' });
+      }
+
+      // Get access token
+      const secretResult = await query("SELECT access_token FROM public.capi_secrets WHERE id = 'global' LIMIT 1");
+      const accessToken = secretResult.rows[0]?.access_token;
+      if (!accessToken) return res.json({ success: true, skipped: true, reason: 'token_missing' });
+
+      const datasetId = settings.fb_capi_dataset_id || settings.fb_pixel_id;
+      if (!datasetId) return res.json({ success: true, skipped: true, reason: 'dataset_id_missing' });
+
+      const apiVersion = settings.fb_capi_api_version || 'v24.0';
+
+      // Helper for hashing
+      const crypto = await import('crypto');
+      const hash = (val) => crypto.createHash('sha256').update(String(val).trim().toLowerCase()).digest('hex');
+
+      // Build user data
+      const hashedUserData = {
+        client_user_agent: user_data.client_user_agent,
+        client_ip_address: req.ip || user_data.client_ip_address,
+        fbp: user_data.fbp,
+        fbc: user_data.fbc
+      };
+
+      if (user_data.em) hashedUserData.em = [hash(user_data.em)];
+      if (user_data.ph) hashedUserData.ph = [hash(user_data.ph)];
+      if (user_data.external_id) hashedUserData.external_id = [hash(user_data.external_id)];
+
+      // Build payload
+      const eventPayload = {
+        event_name,
+        event_time: Math.floor(Date.now() / 1000),
+        event_id,
+        action_source: 'website',
+        event_source_url: event_source_url || `https://${req.get('host')}${req.originalUrl}`,
+        user_data: hashedUserData,
+        custom_data: custom_data
+      };
+
+      const requestBody = { data: [eventPayload] };
+      const testEventCode = test_mode ? settings.fb_capi_test_event_code : null;
+      if (testEventCode) requestBody.test_event_code = testEventCode;
+
+      const url = `https://graph.facebook.com/${apiVersion}/${datasetId}/events?access_token=${accessToken}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        console.error('[CAPI Error]', JSON.stringify(result));
+        return res.json({ success: false, error: result.error?.message || 'Meta API error' });
+      }
+
+      console.log(`[CAPI Success] Event: ${event_name}, ID: ${event_id}, TestMode: ${!!testEventCode}`);
+      return res.json({ success: true, events_received: result.events_received });
+    } catch (err) {
+      console.error('[CAPI Crash]', err);
+      return res.status(500).json({ error: 'CAPI processing failed' });
+    }
+  } 
+  
+  // 2. Private functions (auth required)
   const authHeader = req.headers.authorization;
-  
   if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
-  const token = authHeader.replace('Bearer ', '');
   
+  const token = authHeader.replace('Bearer ', '');
   let user;
   try {
     user = jwt.verify(token, JWT_SECRET);
@@ -473,89 +557,6 @@ app.all('/api/functions/:name', async (req, res) => {
         updated_at: row?.updated_at || null,
         masked: hasToken ? row.access_token.substring(0, 4) + '••••••••' : null
       });
-    }
-  }
-
-  if (name === 'meta-capi') {
-    const { 
-      event_name, 
-      event_id, 
-      event_source_url, 
-      user_data = {}, 
-      custom_data = {},
-      test_mode = false 
-    } = req.body;
-
-    if (!event_name || !event_id) return res.status(400).json({ error: 'event_name and event_id are required' });
-
-    try {
-      // 1. Get settings
-      const settingsResult = await query("SELECT * FROM public.site_settings WHERE id = 'global' LIMIT 1");
-      const settings = settingsResult.rows[0];
-      if (!settings || !settings.fb_capi_enabled) {
-        return res.json({ success: true, skipped: true, reason: 'capi_disabled' });
-      }
-
-      // 2. Get access token
-      const secretResult = await query("SELECT access_token FROM public.capi_secrets WHERE id = 'global' LIMIT 1");
-      const accessToken = secretResult.rows[0]?.access_token;
-      if (!accessToken) return res.json({ success: true, skipped: true, reason: 'token_missing' });
-
-      const datasetId = settings.fb_capi_dataset_id || settings.fb_pixel_id;
-      if (!datasetId) return res.json({ success: true, skipped: true, reason: 'dataset_id_missing' });
-
-      const apiVersion = settings.fb_capi_api_version || 'v24.0';
-
-      // 3. Helper for hashing
-      const crypto = await import('crypto');
-      const hash = (val) => crypto.createHash('sha256').update(String(val).trim().toLowerCase()).digest('hex');
-
-      // 4. Build user data
-      const hashedUserData = {
-        client_user_agent: user_data.client_user_agent,
-        client_ip_address: req.ip || user_data.client_ip_address,
-        fbp: user_data.fbp,
-        fbc: user_data.fbc
-      };
-
-      if (user_data.em) hashedUserData.em = [hash(user_data.em)];
-      if (user_data.ph) hashedUserData.ph = [hash(user_data.ph)];
-      if (user_data.external_id) hashedUserData.external_id = [hash(user_data.external_id)];
-
-      // 5. Build payload
-      const eventPayload = {
-        event_name,
-        event_time: Math.floor(Date.now() / 1000),
-        event_id,
-        action_source: 'website',
-        event_source_url: event_source_url || `https://${req.get('host')}${req.originalUrl}`,
-        user_data: hashedUserData,
-        custom_data: custom_data
-      };
-
-      const requestBody = { data: [eventPayload] };
-      const testEventCode = test_mode ? settings.fb_capi_test_event_code : null;
-      if (testEventCode) requestBody.test_event_code = testEventCode;
-
-      // 6. Send to Meta
-      const url = `https://graph.facebook.com/${apiVersion}/${datasetId}/events?access_token=${accessToken}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        console.error('[CAPI Error]', JSON.stringify(result));
-        return res.json({ success: false, error: result.error?.message || 'Meta API error' });
-      }
-
-      console.log(`[CAPI Success] Event: ${event_name}, ID: ${event_id}, TestMode: ${!!testEventCode}`);
-      return res.json({ success: true, events_received: result.events_received });
-    } catch (err) {
-      console.error('[CAPI Crash]', err);
-      return res.status(500).json({ error: 'CAPI processing failed' });
     }
   }
 
