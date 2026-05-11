@@ -140,6 +140,7 @@ export default function AdminSettings() {
     }
     setIsSavingToken(true);
     try {
+      console.log('[CAPI] Attempting to save token...');
       const response = await supabase.functions.invoke('manage-capi-token', {
         body: { access_token: capiToken.trim() },
       });
@@ -150,10 +151,13 @@ export default function AdminSettings() {
         setShowTokenInput(false);
         await fetchTokenStatus();
       } else {
-        toast.error(response.data?.error || 'Failed to save token');
+        const errorMsg = response.data?.error || response.error?.message || 'Failed to save token';
+        console.error('[CAPI Save Error]', response);
+        toast.error(`Error: ${errorMsg}`);
       }
-    } catch {
-      toast.error('Failed to save access token');
+    } catch (err: any) {
+      console.error('[CAPI Catch Error]', err);
+      toast.error(`Failed to save access token: ${err.message || 'Unknown error'}`);
     } finally {
       setIsSavingToken(false);
     }

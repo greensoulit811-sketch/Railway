@@ -524,40 +524,60 @@ app.all('/api/functions/:name', async (req, res) => {
   }
 
   if (name === 'manage-capi-token') {
-    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    console.log(`[CAPI Function] Request by user: ${user.email}, Role: ${user.role}`);
+    
+    if (user.role !== 'admin') {
+      console.warn(`[CAPI Function] Unauthorized attempt by ${user.email}`);
+      return res.status(403).json({ error: 'Forbidden: Admin access required' });
+    }
     
     // Ensure table exists
-    await query(`
-      CREATE TABLE IF NOT EXISTS public.capi_secrets (
-        id text PRIMARY KEY DEFAULT 'global',
-        access_token text,
-        updated_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
+    try {
+      await query(`
+        CREATE TABLE IF NOT EXISTS public.capi_secrets (
+          id text PRIMARY KEY DEFAULT 'global',
+          access_token text,
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )
+      `);
+    } catch (dbErr) {
+      console.error('[CAPI Function] Table creation failed:', dbErr.message);
+      return res.status(500).json({ error: `Database setup failed: ${dbErr.message}` });
+    }
 
     if (req.method === 'POST') {
       const { access_token } = req.body;
       if (!access_token) return res.status(400).json({ error: 'Access token is required' });
       
-      await query(`
-        INSERT INTO public.capi_secrets (id, access_token, updated_at)
-        VALUES ('global', $1, now())
-        ON CONFLICT (id) DO UPDATE SET access_token = $1, updated_at = now()
-      `, [access_token]);
-      
-      return res.json({ success: true, message: 'Access token saved securely' });
+      try {
+        await query(`
+          INSERT INTO public.capi_secrets (id, access_token, updated_at)
+          VALUES ('global', $1, now())
+          ON CONFLICT (id) DO UPDATE SET access_token = $1, updated_at = now()
+        `, [access_token]);
+        
+        console.log('[CAPI Function] Token saved successfully');
+        return res.json({ success: true, message: 'Access token saved securely' });
+      } catch (saveErr) {
+        console.error('[CAPI Function] Save failed:', saveErr.message);
+        return res.status(500).json({ error: `Save failed: ${saveErr.message}` });
+      }
     }
 
     if (req.method === 'GET') {
-      const result = await query("SELECT access_token, updated_at FROM public.capi_secrets WHERE id = 'global'");
-      const row = result.rows[0];
-      const hasToken = !!row?.access_token;
-      
-      return res.json({
-        has_token: hasToken,
-        updated_at: row?.updated_at || null,
-        masked: hasToken ? row.access_token.substring(0, 4) + '••••••••' : null
-      });
+      try {
+        const result = await query("SELECT access_token, updated_at FROM public.capi_secrets WHERE id = 'global'");
+        const row = result.rows[0];
+        const hasToken = !!row?.access_token;
+        
+        return res.json({
+          has_token: hasToken,
+          updated_at: row?.updated_at || null,
+          masked: hasToken ? row.access_token.substring(0, 4) + '••••••••' : null
+        });
+      } catch (getErr) {
+        return res.json({ has_token: false, error: getErr.message });
+      }
     }
   }
 
