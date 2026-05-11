@@ -22,18 +22,36 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-123';
 const runMigrations = async () => {
   console.log('[DB] Running migrations...');
   try {
-    // 1. Ensure site_settings has marketing columns
-    await query(`
-      ALTER TABLE public.site_settings 
-      ADD COLUMN IF NOT EXISTS fb_pixel_enabled BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS fb_pixel_id TEXT,
-      ADD COLUMN IF NOT EXISTS fb_pixel_test_event_code TEXT,
-      ADD COLUMN IF NOT EXISTS cookie_consent_enabled BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS fb_capi_enabled BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS fb_capi_dataset_id TEXT,
-      ADD COLUMN IF NOT EXISTS fb_capi_test_event_code TEXT,
-      ADD COLUMN IF NOT EXISTS fb_capi_api_version TEXT DEFAULT 'v20.0'
-    `);
+    // 1. Ensure site_settings has necessary columns
+    const columnsToAdd = [
+      { name: 'fb_pixel_enabled', type: 'BOOLEAN DEFAULT false' },
+      { name: 'fb_pixel_id', type: 'TEXT' },
+      { name: 'fb_pixel_test_event_code', type: 'TEXT' },
+      { name: 'cookie_consent_enabled', type: 'BOOLEAN DEFAULT false' },
+      { name: 'fb_capi_enabled', type: 'BOOLEAN DEFAULT false' },
+      { name: 'fb_capi_dataset_id', type: 'TEXT' },
+      { name: 'fb_capi_test_event_code', type: 'TEXT' },
+      { name: 'fb_capi_api_version', type: 'TEXT DEFAULT \'v20.0\'' },
+      { name: 'updated_at', type: 'TIMESTAMPTZ DEFAULT now()' },
+      { name: 'theme_accent_color', type: 'TEXT' },
+      { name: 'brand_primary', type: 'TEXT' },
+      { name: 'brand_secondary', type: 'TEXT' },
+      { name: 'brand_accent', type: 'TEXT' },
+      { name: 'brand_background', type: 'TEXT' },
+      { name: 'brand_foreground', type: 'TEXT' },
+      { name: 'brand_muted', type: 'TEXT' },
+      { name: 'brand_border', type: 'TEXT' },
+      { name: 'brand_card', type: 'TEXT' },
+      { name: 'brand_radius', type: 'TEXT' }
+    ];
+
+    for (const col of columnsToAdd) {
+      try {
+        await query(`ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
+      } catch (err) {
+        // Ignore if column already exists or other minor errors
+      }
+    }
 
     // 2. Ensure capi_secrets table exists
     await query(`
@@ -278,6 +296,7 @@ app.get('/api/:table', async (req, res) => {
     if (table === 'site_settings' || table === 'store_settings') res.json(result.rows.length > 0 ? castValues(result.rows[0]) : null);
     else res.json(castValues(result.rows));
   } catch (err) {
+    console.error(`[GET /api/${table}] FAILED:`, err.message);
     res.status(500).json({ message: err.message });
   }
 });
