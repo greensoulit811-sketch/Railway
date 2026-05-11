@@ -18,6 +18,40 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-123';
 
+// --- Database Migrations ---
+const runMigrations = async () => {
+  console.log('[DB] Running migrations...');
+  try {
+    // 1. Ensure site_settings has marketing columns
+    await query(`
+      ALTER TABLE public.site_settings 
+      ADD COLUMN IF NOT EXISTS fb_pixel_enabled BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS fb_pixel_id TEXT,
+      ADD COLUMN IF NOT EXISTS fb_pixel_test_event_code TEXT,
+      ADD COLUMN IF NOT EXISTS cookie_consent_enabled BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS fb_capi_enabled BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS fb_capi_dataset_id TEXT,
+      ADD COLUMN IF NOT EXISTS fb_capi_test_event_code TEXT,
+      ADD COLUMN IF NOT EXISTS fb_capi_api_version TEXT DEFAULT 'v20.0'
+    `);
+
+    // 2. Ensure capi_secrets table exists
+    await query(`
+      CREATE TABLE IF NOT EXISTS public.capi_secrets (
+        id TEXT PRIMARY KEY DEFAULT 'global',
+        access_token TEXT,
+        is_active BOOLEAN DEFAULT true,
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    
+    console.log('[DB] Migrations completed successfully');
+  } catch (err) {
+    console.error('[DB] Migration failed:', err.message);
+  }
+};
+
+
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
@@ -615,4 +649,6 @@ app.use((req, res, next) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+runMigrations().then(() => {
+  app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+});
