@@ -271,15 +271,15 @@ app.put('/api/store_settings', async (req, res) => {
 app.get('/api/:table', async (req, res) => {
   const { table } = req.params;
   try {
-    let sql = `SELECT * FROM public.${table}`;
+    let sql = `SELECT * FROM public."${table}"`;
     const params = [];
     if (Object.keys(req.query).length > 0) {
       sql += ' WHERE ';
       const conditions = [];
       Object.keys(req.query).forEach((key, index) => {
         if (key.startsWith('_')) return;
-        let dbKey = key;
-        if (table === 'user_roles' && key === 'user_id') dbKey = 'public_user_id';
+        let dbKey = `"${key}"`;
+        if (table === 'user_roles' && key === 'user_id') dbKey = '"public_user_id"';
         let val = req.query[key];
         if (val === 'true' || val === 'false') conditions.push(`${dbKey} = ${val}`);
         else {
@@ -289,15 +289,43 @@ app.get('/api/:table', async (req, res) => {
       });
       sql += conditions.join(' AND ');
     }
-    const sort = req.query._sort || (table === 'slider_slides' ? 'sort_order' : 'created_at');
-    const order = req.query._order || (table === 'slider_slides' ? 'ASC' : 'DESC');
+    
+    // Default sorting
+    let sort = table === 'slider_slides' ? '"sort_order"' : '"created_at"';
+    let order = table === 'slider_slides' ? 'ASC' : 'DESC';
+    
+    // Override if provided
+    if (req.query._sort) sort = `"${req.query._sort}"`;
+    if (req.query._order) order = req.query._order;
+
     sql += ` ORDER BY ${sort} ${order} LIMIT 200`;
-    const result = await query(sql, params);
-    if (table === 'site_settings' || table === 'store_settings') res.json(result.rows.length > 0 ? castValues(result.rows[0]) : null);
-    else res.json(castValues(result.rows));
+    
+    try {
+      const result = await query(sql, params);
+      
+      // Special handling for settings tables to ensure they ALWAYS return a valid object
+      if (table === 'site_settings' || table === 'store_settings') {
+        if (result.rows.length === 0) {
+          console.log(`[GET /api/${table}] Row missing, creating default 'global' row`);
+          const insertSql = `INSERT INTO public."${table}" ("id") VALUES ('global') ON CONFLICT DO NOTHING RETURNING *`;
+          const insertRes = await query(insertSql);
+          return res.json(castValues(insertRes.rows[0] || { id: 'global' }));
+        }
+        return res.json(castValues(result.rows[0]));
+      }
+      
+      res.json(castValues(result.rows));
+    } catch (dbErr) {
+      console.error(`[DATABASE ERROR] Table: ${table}, SQL: ${sql}, Error:`, dbErr.message);
+      // Fallback for site_settings if the query fails (e.g. missing columns during migration)
+      if (table === 'site_settings') {
+        return res.json({ id: 'global', fb_pixel_enabled: false });
+      }
+      throw dbErr;
+    }
   } catch (err) {
-    console.error(`[GET /api/${table}] FAILED:`, err.message);
-    res.status(500).json({ message: err.message });
+    console.error(`[GET /api/${table}] CRITICAL FAILURE:`, err.message);
+    res.status(500).json({ error: err.message, table });
   }
 });
 
