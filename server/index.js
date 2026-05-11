@@ -79,11 +79,23 @@ app.post('/api/auth/login', async (req, res) => {
     const result = await query('SELECT * FROM public.users WHERE email = $1', [email]);
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ message: 'Invalid credentials' });
+    
     let role = 'customer';
     try {
       const roleResult = await query('SELECT role FROM public.user_roles WHERE public_user_id = $1 OR user_id = $1 LIMIT 1', [user.id]);
       if (roleResult.rows.length > 0) role = roleResult.rows[0].role;
-    } catch (e) {}
+      
+      // Admin bypass for the owner email
+      if (email === 'greensoulit811@gmail.com') {
+        role = 'admin';
+        console.log(`[Login] Bypassing role to admin for owner: ${email}`);
+      }
+      
+      console.log(`[Login] User ${email} role assigned: ${role}`);
+    } catch (e) {
+      console.error('[Login] Role check error:', e.message);
+    }
+    
     const token = jwt.sign({ id: user.id, email: user.email, role }, JWT_SECRET);
     res.json(castValues({ user: { id: user.id, email: user.email, role }, session: { access_token: token } }));
   } catch (err) {
