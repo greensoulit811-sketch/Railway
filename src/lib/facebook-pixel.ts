@@ -139,7 +139,11 @@ export function initFacebookPixel(
     window.fbq('init', pixelId);
     
     pixelInitialized = true;
-    console.log('[FB Pixel] Initialized:', pixelId, capiEnabled ? '+ CAPI' : '');
+    console.log('[FB Pixel] Initialized successfully:', pixelId, capiEnabled ? '(CAPI Enabled)' : '(CAPI Disabled)');
+    
+    if (testEventCode) {
+      console.log('[FB Pixel] Using Test Event Code:', testEventCode);
+    }
     
     return true;
   } catch (error) {
@@ -178,19 +182,31 @@ function trackEvent(
           eventParams.test_event_code = testEventCode;
         }
         window.fbq('track', eventName, eventParams, { eventID: eventId });
+        console.log(`[FB Pixel] Browser event tracked: ${eventName}`, eventParams);
+      } else {
+        console.log(`[FB Pixel] Browser event skipped: ${eventName} (fbq not loaded)`);
       }
     } catch (error) {
-      // Fail silently in production
+      console.warn(`[FB Pixel] Error tracking ${eventName}:`, error);
     }
   }
 
   // Server-side CAPI (fire-and-forget, never blocks)
   if (!options?.skipCapi && !window.location.pathname.startsWith('/admin')) {
-    sendCapiEvent(eventName, {
-      eventId,
-      userData: options?.userData,
-      customData: params,
-    }).catch(() => {});
+    if (capiEnabled) {
+      console.log(`[CAPI] Sending ${eventName} event...`);
+      sendCapiEvent(eventName, {
+        eventId,
+        userData: options?.userData,
+        customData: params,
+      }).then(() => {
+        console.log(`[CAPI] ${eventName} event sent successfully`);
+      }).catch((err) => {
+        console.warn(`[CAPI] Failed to send ${eventName}:`, err);
+      });
+    } else {
+      console.log(`[CAPI] Skipping ${eventName} - CAPI not enabled/initialized`);
+    }
   }
 
   return eventId;
@@ -200,6 +216,7 @@ function trackEvent(
  * Track PageView event
  */
 export function trackPageView(): string {
+  console.log('[FB Pixel] Tracking PageView...');
   return trackEvent('PageView', undefined, { skipCapi: false });
 }
 

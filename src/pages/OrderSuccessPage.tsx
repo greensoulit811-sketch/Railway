@@ -20,15 +20,16 @@ export default function OrderSuccessPage() {
       
       const timer = setTimeout(() => {
         trackPurchase({
-          transaction_id: order.order_number,
+          orderId: order.order_number,
           value: parseFloat(order.total_amount),
           currency: settings.currency_code || 'BDT',
-          items: order.items?.map((item: any) => ({
+          contents: order.items?.map((item: any) => ({
             id: item.sku || item.product_id,
-            name: item.product_name,
             quantity: item.quantity,
-            price: parseFloat(item.price)
-          })) || []
+            item_price: parseFloat(item.price)
+          })) || [],
+          email: order.customer_email || undefined,
+          phone: order.customer_phone || undefined
         });
         console.log('[Purchase Event] Sent to Facebook');
       }, 800);
