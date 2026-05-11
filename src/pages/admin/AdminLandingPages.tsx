@@ -116,10 +116,13 @@ export default function AdminLandingPages() {
       return;
     }
 
+    const cleanedSlug = (form.slug || generateSlug(form.title)).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const submissionForm = { ...form, slug: cleanedSlug };
+
     if (editId) {
-      await updatePage.mutateAsync({ id: editId, ...form });
+      await updatePage.mutateAsync({ id: editId, ...submissionForm });
     } else {
-      await createPage.mutateAsync(form);
+      await createPage.mutateAsync(submissionForm);
     }
     setIsOpen(false);
   };
