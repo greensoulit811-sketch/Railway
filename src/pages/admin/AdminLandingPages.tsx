@@ -284,7 +284,7 @@ export default function AdminLandingPages() {
                   <Plus className="h-4 w-4 mr-1" /> Add Card
                 </Button>
               </div>
-              {form.how_to_use_cards.map((card, i) => (
+              {(form.how_to_use_cards || []).map((card, i) => (
                 <div key={i} className="border border-border rounded-lg p-4 space-y-3 relative">
                   <button type="button" onClick={() => removeHowToCard(i)} className="absolute top-2 right-2 text-destructive">
                     <X className="h-4 w-4" />

@@ -278,7 +278,7 @@ export default function LandingPageView() {
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">{t('common.howToUse') || 'How to Use'}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {page.how_to_use_cards.map((card, i) => (
+              {Array.isArray(page.how_to_use_cards) && page.how_to_use_cards.map((card, i) => (
                 <div key={i} className="bg-card border border-border rounded-xl overflow-hidden">
                   {card.image && (
                     <div className="aspect-video overflow-hidden">

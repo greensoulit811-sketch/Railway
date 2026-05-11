@@ -35,7 +35,7 @@ export const useLandingPages = () => {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        how_to_use_cards: (d.how_to_use_cards as any) || [],
+        how_to_use_cards: Array.isArray(d.how_to_use_cards) ? d.how_to_use_cards : [],
       })) as LandingPage[];
     },
   });
@@ -54,7 +54,7 @@ export const useLandingPage = (slug: string) => {
       if (!data) return null;
       return {
         ...data,
-        how_to_use_cards: (data.how_to_use_cards as any) || [],
+        how_to_use_cards: Array.isArray(data.how_to_use_cards) ? data.how_to_use_cards : [],
       } as LandingPage;
     },
     enabled: !!slug,
