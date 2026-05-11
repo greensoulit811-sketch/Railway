@@ -24,7 +24,15 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
     if (location.pathname.startsWith('/admin')) return;
 
     // Check if pixel is enabled
+    console.log('[FB Pixel Provider] Settings check:', {
+      enabled: settings.fb_pixel_enabled,
+      id: settings.fb_pixel_id,
+      capi: settings.fb_capi_enabled,
+      testCode: settings.fb_pixel_test_event_code
+    });
+
     if (!settings.fb_pixel_enabled || !settings.fb_pixel_id) {
+      console.log('[FB Pixel Provider] Pixel is disabled or ID is missing');
       return;
     }
 
