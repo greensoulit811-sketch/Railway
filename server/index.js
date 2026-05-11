@@ -85,8 +85,9 @@ app.post('/api/auth/login', async (req, res) => {
       const roleResult = await query('SELECT role FROM public.user_roles WHERE public_user_id = $1 OR user_id = $1 LIMIT 1', [user.id]);
       if (roleResult.rows.length > 0) role = roleResult.rows[0].role;
       
-      // Admin bypass for the owner email
-      if (email === 'greensoulit811@gmail.com') {
+      // Admin bypass for the owner emails
+      const adminEmails = ['greensoulit811@gmail.com', 'aminurrahmansuhan@gmail.com'];
+      if (adminEmails.includes(email)) {
         role = 'admin';
         console.log(`[Login] Bypassing role to admin for owner: ${email}`);
       }
