@@ -13,6 +13,21 @@ let pixelInitialized = false;
 let pixelId: string | null = null;
 let testEventCode: string | null = null;
 let capiEnabled = false;
+let eventQueue: Array<{ eventName: string; params?: any; options?: any }> = [];
+
+/**
+ * Process queued events after initialization
+ */
+function processQueue() {
+  if (eventQueue.length > 0) {
+    console.log(`[FB Pixel] Processing ${eventQueue.length} queued events...`);
+    const queue = [...eventQueue];
+    eventQueue = [];
+    queue.forEach(event => {
+      trackEvent(event.eventName, event.params, event.options);
+    });
+  }
+}
 
 /**
  * Generate a unique event ID for deduplication between browser pixel and CAPI
@@ -145,6 +160,9 @@ export function initFacebookPixel(
       console.log('[FB Pixel] Using Test Event Code:', testEventCode);
     }
     
+    // Process any events that were fired before initialization
+    processQueue();
+    
     return true;
   } catch (error) {
     console.warn('[FB Pixel] Failed to initialize:', error);
@@ -205,7 +223,8 @@ function trackEvent(
         console.warn(`[CAPI] Failed to send ${eventName}:`, err);
       });
     } else {
-      console.log(`[CAPI] Skipping ${eventName} - CAPI not enabled/initialized`);
+      console.log(`[CAPI] Queuing ${eventName} - CAPI not yet initialized`);
+      eventQueue.push({ eventName, params, options });
     }
   }
 
