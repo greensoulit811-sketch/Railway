@@ -34,6 +34,9 @@ const autoCast = (obj) => {
 };
 
 class SupabaseQueryBuilder {
+  in(arg0: string, ids: string[]): { data: any; error: any; } | PromiseLike<{ data: any; error: any; }> {
+    throw new Error('Method not implemented.');
+  }
   constructor(table) {
     this.table = table;
     this.filters = {};

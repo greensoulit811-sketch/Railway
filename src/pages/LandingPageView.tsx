@@ -27,6 +27,7 @@ const useLandingProducts = (ids: string[]) => {
         .from('products')
         .select('*')
         .in('id', ids);
+        // .in('id', ids);
       if (error) throw error;
       // Maintain order
       const map = new Map((data || []).map(p => [p.id, p]));
