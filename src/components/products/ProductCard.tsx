@@ -7,6 +7,7 @@ import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { Button } from '@/components/ui/button';
 import { WishlistButton } from '@/components/products/WishlistButton';
 import { toast } from 'sonner';
+import { trackAddToCart } from '@/lib/facebook-pixel';
 
 interface ProductCardProps {
   product: Product & { category?: Category | null };
@@ -15,7 +16,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
-  const { t, formatCurrency } = useSiteSettings();
+  const { t, formatCurrency, settings } = useSiteSettings();
   const navigate = useNavigate();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
@@ -31,6 +32,16 @@ export function ProductCard({ product }: ProductCardProps) {
     }
 
     setIsAddingToCart(true);
+    
+    // Track AddToCart
+    trackAddToCart({
+      contentId: product.id,
+      contentName: product.name,
+      value: product.sale_price || product.price,
+      currency: settings.currency_code,
+      quantity: 1,
+    });
+
     await new Promise(resolve => setTimeout(resolve, 300));
 
     addItem({
@@ -61,6 +72,15 @@ export function ProductCard({ product }: ProductCardProps) {
     }
 
     setIsBuyingNow(true);
+
+    // Track AddToCart (Initiate Buy Now)
+    trackAddToCart({
+      contentId: product.id,
+      contentName: product.name,
+      value: product.sale_price || product.price,
+      currency: settings.currency_code,
+      quantity: 1,
+    });
 
     const buyNowItem = {
       id: product.id,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Search, User, Globe } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
@@ -6,6 +6,7 @@ import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { trackSearch } from '@/lib/facebook-pixel';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,17 @@ export function Header() {
   const { data: storeSettings } = useStoreSettings();
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Track search with debounce
+  useEffect(() => {
+    if (searchQuery.length > 2) {
+      const timer = setTimeout(() => {
+        trackSearch(searchQuery);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
 
   const storeName = storeSettings?.store_name || 'Kuakata Dryfish';
   const storeLogo = storeSettings?.store_logo || '';
@@ -163,6 +175,8 @@ export function Header() {
                 placeholder={t('nav.searchProducts')}
                 className="input-shop pl-10"
                 autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>

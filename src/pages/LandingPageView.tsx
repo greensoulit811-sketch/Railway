@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, ShoppingBag, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackPageView, trackAddToCart } from '@/lib/facebook-pixel';
 
 
 // Fetch products by IDs
@@ -63,6 +64,13 @@ export default function LandingPageView() {
   });
   const [transactionId, setTransactionId] = useState('');
 
+  // Track page view for landing page
+  useEffect(() => {
+    if (page) {
+      trackPageView();
+    }
+  }, [page]);
+
   useEffect(() => {
     if (products.length > 0 && !selectedProduct) {
       setSelectedProduct(products[0]);
@@ -103,6 +111,15 @@ export default function LandingPageView() {
   };
 
   const scrollToCheckout = () => {
+    if (selectedProduct) {
+      trackAddToCart({
+        contentId: selectedProduct.id,
+        contentName: selectedProduct.name,
+        value: (selectedProduct.sale_price || selectedProduct.price) * quantity,
+        currency: settings.currency_code,
+        quantity,
+      });
+    }
     document.getElementById('lp-checkout')?.scrollIntoView({ behavior: 'smooth' });
   };
 

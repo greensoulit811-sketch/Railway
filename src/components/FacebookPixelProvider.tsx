@@ -25,39 +25,33 @@ export function FacebookPixelProvider({ children }: { children: React.ReactNode 
 
     // Check if pixel is enabled
     if (!settings.fb_pixel_enabled || !settings.fb_pixel_id) {
-      initializedRef.current = false;
-      lastInitializedId.current = null;
       return;
     }
 
-    // Check if already initialized with these exact settings on this page
-    const currentConfigKey = `${settings.fb_pixel_id}|${settings.fb_pixel_test_event_code}|${settings.fb_capi_enabled}|${settings.fb_capi_test_event_code}`;
+    const currentConfigKey = `${settings.fb_pixel_id}|${settings.fb_pixel_test_event_code}|${settings.fb_capi_enabled}`;
     
-    if (initializedRef.current && lastInitializedId.current === currentConfigKey && lastPathRef.current === location.pathname) {
-      return;
-    }
+    // If ID changed or not yet initialized, initialize it
+    if (lastInitializedId.current !== currentConfigKey) {
+      try {
+        console.log('[FB Pixel Provider] Initializing with ID:', settings.fb_pixel_id);
+        const success = initFacebookPixel(
+          settings.fb_pixel_id,
+          settings.fb_pixel_test_event_code,
+          settings.fb_capi_enabled || false
+        );
 
-    // Check consent if required (removed mandatory check to allow automatic tracking)
-    // if (settings.cookie_consent_enabled && !hasConsent()) return;
-
-    try {
-      console.log('[FB Pixel Provider] Initializing with ID:', settings.fb_pixel_id);
-      const success = initFacebookPixel(
-        settings.fb_pixel_id,
-        settings.fb_pixel_test_event_code,
-        settings.fb_capi_enabled || false
-      );
-
-      if (success) {
-        initializedRef.current = true;
-        lastInitializedId.current = currentConfigKey;
-        trackPageView();
-        lastPathRef.current = location.pathname;
+        if (success) {
+          initializedRef.current = true;
+          lastInitializedId.current = currentConfigKey;
+          // Fire initial page view
+          trackPageView();
+          lastPathRef.current = location.pathname;
+        }
+      } catch (error) {
+        console.warn('[FB Pixel Provider] Init error:', error);
       }
-    } catch (error) {
-      console.warn('[FB Pixel Provider] Init error:', error);
     }
-  }, [settings.fb_pixel_enabled, settings.fb_pixel_id, settings.fb_capi_enabled, settings.cookie_consent_enabled, location.pathname]);
+  }, [settings.fb_pixel_enabled, settings.fb_pixel_id, settings.fb_capi_enabled, location.pathname]);
 
   // Track page views on route change
   useEffect(() => {
