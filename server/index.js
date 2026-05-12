@@ -192,15 +192,24 @@ app.get('/api/orders', async (req, res) => {
     // Fetch items for each order
     const ordersWithItems = await Promise.all(ordersResult.rows.map(async (order) => {
       const itemsResult = await query('SELECT * FROM public.order_items WHERE order_id = $1', [order.id]);
-      // Ensure date is ISO string for frontend
+      const safeDate = (dateStr) => {
+        try {
+          const d = new Date(dateStr);
+          return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+        } catch (e) {
+          return new Date().toISOString();
+        }
+      };
+      
       return { 
         ...order, 
-        created_at: new Date(order.created_at).toISOString(),
+        created_at: safeDate(order.created_at),
         order_items: itemsResult.rows 
       };
     }));
     
-    res.json(castValues(id || order_number ? ordersWithItems[0] : ordersWithItems));
+    const responseData = id || order_number ? (ordersWithItems[0] || null) : ordersWithItems;
+    res.json(castValues(responseData));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -224,7 +224,14 @@ export default function AdminOrders() {
                         </Select>
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
-                        {format(new Date(order.created_at), 'MMM dd, yyyy')}
+                        {(() => {
+                          try {
+                            const d = new Date(order.created_at);
+                            return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM dd, yyyy');
+                          } catch (e) {
+                            return 'N/A';
+                          }
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>

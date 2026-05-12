@@ -197,7 +197,14 @@ export default function AdminOrderDetails() {
           <div>
             <h1 className="text-2xl font-bold">{order.order_number}</h1>
             <p className="text-sm text-muted-foreground">
-              {format(new Date(order.created_at), 'MMMM dd, yyyy · hh:mm a')}
+              {(() => {
+                try {
+                  const d = new Date(order.created_at);
+                  return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMMM dd, yyyy · hh:mm a');
+                } catch (e) {
+                  return 'N/A';
+                }
+              })()}
             </p>
           </div>
         </div>
