@@ -56,7 +56,14 @@ export const CourierLabel = forwardRef<HTMLDivElement, CourierLabelProps>(
           <div className="flex justify-between items-start mb-2">
             <p className="text-xs font-bold uppercase text-gray-600">TO:</p>
             <span className="text-xs text-gray-500">
-              {format(new Date(order.created_at), 'dd/MM/yyyy')}
+              {(() => {
+                try {
+                  const d = new Date(order.created_at);
+                  return isNaN(d.getTime()) ? 'N/A' : format(d, 'dd/MM/yyyy');
+                } catch (e) {
+                  return 'N/A';
+                }
+              })()}
             </span>
           </div>
           <p className="text-xl font-bold leading-tight">{order.customer_name}</p>

@@ -54,7 +54,14 @@ export const OrderInvoice = forwardRef<HTMLDivElement, OrderInvoiceProps>(
             <h2 className="text-3xl font-bold text-gray-800">INVOICE</h2>
             <div className="mt-4 text-sm">
               <p><span className="font-semibold">Order No:</span> {order.order_number}</p>
-              <p><span className="font-semibold">Date:</span> {format(new Date(order.created_at), 'dd MMM yyyy')}</p>
+              <p><span className="font-semibold">Date:</span> {(() => {
+                try {
+                  const d = new Date(order.created_at);
+                  return isNaN(d.getTime()) ? 'N/A' : format(d, 'dd MMM yyyy');
+                } catch (e) {
+                  return 'N/A';
+                }
+              })()}</p>
               <p><span className="font-semibold">Payment:</span> {getPaymentMethodLabel(order.payment_method)}</p>
               <p>
                 <span className="font-semibold">Status:</span>{' '}

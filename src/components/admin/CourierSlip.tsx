@@ -20,7 +20,16 @@ export const CourierSlip = forwardRef<HTMLDivElement, CourierSlipProps>(
         <div className="text-center border-b-2 border-black pb-3 mb-4">
           <h1 className="text-xl font-black tracking-wide">COURIER SLIP</h1>
           <p className="text-2xl font-bold mt-1">{order.order_number}</p>
-          <p className="text-sm text-gray-600">{format(new Date(order.created_at), 'dd MMM yyyy, hh:mm a')}</p>
+          <p className="text-sm text-gray-600">
+            {(() => {
+              try {
+                const d = new Date(order.created_at);
+                return isNaN(d.getTime()) ? 'N/A' : format(d, 'dd MMM yyyy, hh:mm a');
+              } catch (e) {
+                return 'N/A';
+              }
+            })()}
+          </p>
         </div>
 
         {/* Receiver Section */}

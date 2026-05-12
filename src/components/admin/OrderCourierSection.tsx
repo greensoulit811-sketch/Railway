@@ -137,7 +137,14 @@ export function OrderCourierSection({ order, onPrintLabel }: OrderCourierSection
                   <span className="text-sm text-muted-foreground">Last Updated</span>
                   <span className="text-sm flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {format(new Date(order.courier_updated_at), 'dd MMM, hh:mm a')}
+                    {(() => {
+                      try {
+                        const d = new Date(order.courier_updated_at);
+                        return isNaN(d.getTime()) ? 'N/A' : format(d, 'dd MMM, hh:mm a');
+                      } catch (e) {
+                        return 'N/A';
+                      }
+                    })()}
                   </span>
                 </div>
               )}
